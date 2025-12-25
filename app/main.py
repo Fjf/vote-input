@@ -125,9 +125,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             data = json.loads(raw_data)
             vote_tally_mouse_movements[client_id] = data.get('mouseDelta')
             vote_tally_buttons[client_id] = data.get("key")
+
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         vote_tally_buttons.pop(client_id, None)
+        vote_tally_mouse_movements.pop(client_id, None)
 
 
 # ----------------------------------------------------------------------

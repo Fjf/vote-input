@@ -28,6 +28,8 @@ function tryEmit() {
         ws.send(
             JSON.stringify({key: Array.from(pressedKeys), mouseDelta: mouseDelta})
         );
+        mouseDelta.xDelta = 0;
+        mouseDelta.yDelta = 0;
         lastEmitTime = now;
     }
 }
@@ -101,7 +103,7 @@ let mouseDelta = {
 };
 
 document.addEventListener('mousemove', (e) => {
-    const viewportWidth  = window.innerWidth;
+    const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
     mouseDelta.xDelta += e.movementX / viewportWidth;

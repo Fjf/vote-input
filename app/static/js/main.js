@@ -1,41 +1,21 @@
-import { randomString } from './randomString.js';
+import {randomString} from './randomString.js';
 
 const userId = randomString(16);
 // Open a WebSocket connection to the server (user‑specific endpoint)
 const ws = new WebSocket(`ws://${location.host}/ws/${userId}`);
 
-// When a message is received, display it in the output div
-ws.onmessage = (event) => {
-    const outputDiv = document.getElementById('output');
-    outputDiv.innerText = event.data;
-};
 
 /* -------------------------------------------------------------
    State & throttling logic
    ------------------------------------------------------------- */
-let lastSentKey = null;          // last key value that was actually sent
-let pendingKey = null;           // most recent key value to be sent
 let lastEmitTime = 0;            // timestamp of the last send
+let tracking = true;  // Do we listen to user?
+let mouseTracking = false;
 const EMIT_INTERVAL_MS = 100;    // 10 times per second = 100 ms
 
 // Set of keys currently held down
 const pressedKeys = new Set();
 
-/**
- * Determine the key that should be considered “active”.
- * Returns the most recently pressed key, or `null` if none.
- */
-function updatePendingKey() {
-    // If there are still pressed keys, pick the last one added.
-    // Since Set preserves insertion order, we can take the last element.
-    if (pressedKeys.size === 0) {
-        pendingKey = null;
-    } else {
-        // Convert to array to get the last element (most recent)
-        const keysArray = Array.from(pressedKeys);
-        pendingKey = keysArray[keysArray.length - 1];
-    }
-}
 
 /**
  * Attempt to emit the pending key if it differs from the last sent key
@@ -43,27 +23,101 @@ function updatePendingKey() {
  */
 function tryEmit() {
     const now = Date.now();
-    if (pendingKey !== lastSentKey && now - lastEmitTime >= EMIT_INTERVAL_MS) {
-        ws.send(JSON.stringify({ key: pendingKey }));
-        lastSentKey = pendingKey;
+    if (now - lastEmitTime >= EMIT_INTERVAL_MS) {
+        console.log("trying emit")
+        ws.send(
+            JSON.stringify({key: Array.from(pressedKeys), mouseDelta: mouseDelta})
+        );
         lastEmitTime = now;
     }
 }
 
-// Run the throttling check regularly (e.g., every 50 ms)
+const trackButton = document.getElementById('tracking-button');
+trackButton.addEventListener('click', () => {
+    tracking = !tracking;
+    trackButton.innerHTML = 'Switch to ' + (tracking ? 'not' : '') + ' Tracking';
+})
+
+
+// Run the throttling check regularly (e.g., every 50ms)
 setInterval(tryEmit, 50);
 
 /* -------------------------------------------------------------
    UI event listeners – maintain `pressedKeys` and update `pendingKey`
    ------------------------------------------------------------- */
 document.addEventListener('keydown', (e) => {
-    // Add the key to the set (duplicates are ignored)
-    pressedKeys.add(e.key);
-    updatePendingKey();
+    if (!tracking) return;
+    pressedKeys.add(e.code);
+    document.getElementById('current-tracking').innerHTML = Array.from(pressedKeys).join(',') || "NONE";
+    return false;
+
 });
 
+
 document.addEventListener('keyup', (e) => {
-    // Remove the released key
-    pressedKeys.delete(e.key);
-    updatePendingKey();
+    if (!tracking) return;
+    pressedKeys.delete(e.code);
+    document.getElementById('current-tracking').innerHTML = Array.from(pressedKeys).join(',') || "NONE";
+    return false;
+
+});
+document.addEventListener('mousedown', (e) => {
+    if (!tracking) return;
+    if (e.buttons & 1) pressedKeys.add('LeftMouseButton')
+    if (e.buttons & 2) pressedKeys.add('RightMouseButton')
+    if (e.buttons & 4) pressedKeys.add('MiddleMouseButton')
+    if (e.buttons & 8) pressedKeys.add('PgUpMouseButton')
+    if (e.buttons & 16) pressedKeys.add('PgDnMouseButton')
+
+    document.getElementById('current-tracking').innerHTML = Array.from(pressedKeys).join(',') || "NONE";
+    e.preventDefault();
+    e.stopPropagation();
+});
+document.addEventListener('mouseup', (e) => {
+    if (!tracking) return;
+    if (!(e.buttons & 1)) pressedKeys.delete('LeftMouseButton')
+    if (!(e.buttons & 2)) pressedKeys.delete('RightMouseButton')
+    if (!(e.buttons & 4)) pressedKeys.delete('MiddleMouseButton')
+    if (!(e.buttons & 8)) pressedKeys.delete('PgUpMouseButton')
+    if (!(e.buttons & 16)) pressedKeys.delete('PgDnMouseButton')
+    document.getElementById('current-tracking').innerHTML = Array.from(pressedKeys).join(',') || "NONE";
+    e.preventDefault();
+    e.stopPropagation();
+});
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault()
+});
+
+
+const mouseTrackButton = document.getElementById('tracking-mouse-button');
+mouseTrackButton.addEventListener('click', () => {
+    mouseTracking = !mouseTracking;
+    mouseTrackButton.requestPointerLock();
+})
+
+let mouseDelta = {
+    'xDelta': 0,
+    'yDelta': 0,
+};
+
+document.addEventListener('mousemove', (e) => {
+    const viewportWidth  = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    mouseDelta.xDelta += e.movementX / viewportWidth;
+    mouseDelta.yDelta += e.movementY / viewportHeight;
+})
+
+function onReturnToPage() {
+    mouseTracking = false;
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        onReturnToPage();
+    }
+});
+
+window.addEventListener('focus', () => {
+    onReturnToPage();
 });

@@ -1,9 +1,14 @@
+import asyncio
 import json
+import threading
+import time
+from functools import partial
 from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -70,6 +75,16 @@ class ListenerManager:
 
     def __init__(self):
         self.active_listeners: list[WebSocket] = []
+        self.emit_interval = 100  # ms
+        threading.Thread(target=self._run_emitter_loop, daemon=True).start()
+
+    def _run_emitter_loop(self):
+        asyncio.run(self.emit_sporadically())
+
+    async def emit_sporadically(self):
+        while True:
+            await self.broadcast(str(vote_tally_buttons) + str(vote_tally_mouse_movements))
+            await asyncio.sleep(self.emit_interval / 1000)
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -84,9 +99,17 @@ class ListenerManager:
             await listener.send_text(message)
 
 
+class MouseUpdate(BaseModel):
+    xDelta: float  # Between -1 and 1, 1 is monitor width
+    yDelta: float  # Between -1 and 1, 1 io monitor height.
+
 manager = ConnectionManager()
 listener_manager = ListenerManager()
-voting_system: dict[str, str] = {}
+
+# Buttons are all keyboard buttons and the 3 mouse buttons.
+vote_tally_buttons: dict[str, str] = {}
+# Movement is defined as a difference of xDelta, yDelta
+vote_tally_mouse_movements: dict[str, MouseUpdate] = {}
 
 
 # ----------------------------------------------------------------------
@@ -100,12 +123,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         while True:
             raw_data = await websocket.receive_text()
             data = json.loads(raw_data)
-            voting_system[client_id] = data.get("key")
-            # Notify all listeners about the new voting state
-            await listener_manager.broadcast(str(voting_system))
+            vote_tally_mouse_movements[client_id] = data.get('mouseDelta')
+            vote_tally_buttons[client_id] = data.get("key")
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        voting_system.pop(client_id, None)
+        vote_tally_buttons.pop(client_id, None)
 
 
 # ----------------------------------------------------------------------
@@ -116,8 +138,6 @@ async def listening_endpoint(websocket: WebSocket):
     """Register a listener and push the current voting state whenever it changes."""
     await listener_manager.connect(websocket)
     try:
-        # Send the current state immediately upon connection
-        await websocket.send_text(str(voting_system))
         while True:
             # Keep the connection alive; we don't expect incoming messages.
             await websocket.receive_text()

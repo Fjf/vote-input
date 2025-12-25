@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+
+<script type="module" src="js/main.js"></script>
+<script type="module" src="js/listen.js"></script>
 <head>
     <title>WebSocket Test</title>
     <style>
@@ -13,11 +16,13 @@
     </style>
 </head>
 <body>
-<h1>WebSocket Echo</h1>
-<div id="output"></div>
-
+<h1>Listening to your input...</h1>
+<div style="display: flex; flex-direction: row"><div>Input: </div><div id="current-tracking">NONE</div></div>
+<button id="tracking-button">Switch to not Tracking</button>
+<button id="tracking-mouse-button">Start Tracking Mouse? Press ESC to get control back.</button>
+<h1>System Means:</h1>
+<div id="output">Connecting...</div>
 
 </body>
-<script type="module"  src="js/main.js"></script>
 
 </html>

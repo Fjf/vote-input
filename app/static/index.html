@@ -1,28 +1,60 @@
 <!DOCTYPE html>
 <html>
-
-<script type="module" src="js/main.js"></script>
-<script type="module" src="js/listen.js"></script>
 <head>
-    <title>WebSocket Test</title>
+    <meta charset="utf-8">
+    <title>Input Overlay</title>
+
     <style>
-        #output {
-            margin-top: 1rem;
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            min-height: 2rem;
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            color: white;
             font-family: monospace;
         }
+
+        body {
+            pointer-events: auto;
+        }
+
+        #panel {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px;
+            border-radius: 8px;
+            width: fit-content;
+        }
     </style>
+
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/listen.js"></script>
 </head>
 <body>
-<h1>Listening to your input...</h1>
-<div style="display: flex; flex-direction: row"><div>Input: </div><div id="current-tracking">NONE</div></div>
-<button id="tracking-button">Switch to not Tracking</button>
-<button id="tracking-mouse-button">Start Tracking Mouse? Press ESC to get control back.</button>
-<h1>System Means:</h1>
-<div id="output">Connecting...</div>
+<div id="panel">
+    <h1>Listening to your input...</h1>
 
+    <div style="display:flex;gap:8px">
+        <div>Input:</div>
+        <div id="current-tracking">NONE</div>
+    </div>
+
+    <button id="tracking-button">Switch to not Tracking</button>
+    <button id="tracking-mouse-button">
+        Start Tracking Mouse (ESC to release)
+    </button>
+
+    <h3>System Means:</h3>
+    <div id="output">Connecting...</div>
+    <button id="close-button">Close Window</button>
+</div>
+
+<a href="/download">
+    <button>Download Windows Installer</button>
+</a>
+<script>
+    document.getElementById('close-button').addEventListener('click', () => {
+        window.close();
+    });
+</script>
 </body>
 
 </html>

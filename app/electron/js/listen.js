@@ -1,4 +1,5 @@
-const ws = new WebSocket(`ws://${location.host}/listen`);
+const host = location.host.startsWith('file') || location.host === '' ? 'localhost:7790' : location.host;
+const ws = new WebSocket(`ws://${host}/listen`);
 
 ws.onopen = () => {
     document.getElementById('output').textContent = 'Connected – waiting for updates...';

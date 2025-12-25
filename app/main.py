@@ -33,11 +33,15 @@ async def get_root():
 # ----------------------------------------------------------------------
 # Serve the listening HTML page
 # ----------------------------------------------------------------------
-@app.get("/listening", response_class=FileResponse)
-async def get_listening():
-    """Return the listening page."""
-    html_path = Path(__file__).parent / "static" / "listening.html"
-    return FileResponse(html_path)
+@app.get("/download", response_class=FileResponse)
+async def download_input_overlay():
+    """Return the Electron installer as a downloadable file."""
+    file_path = Path(__file__).parent / "electron" / "dist" / "InputOverlay Setup 1.0.0.exe"
+    return FileResponse(
+        path=file_path,
+        filename="InputOverlay.exe",  # Name shown to the user
+        media_type="application/octet-stream"
+    )
 
 
 # ----------------------------------------------------------------------
@@ -50,7 +54,7 @@ async def get_js(file_path: str):
 
     Example: ``GET /js/app.js`` → ``static/js/app.js``.
     """
-    js_path = Path(__file__).parent / "static" / "js" / file_path
+    js_path = Path(__file__).parent / "electron" / "js" / file_path
     if not js_path.is_file():
         raise HTTPException(status_code=404, detail="JavaScript file not found")
     return FileResponse(js_path, media_type="application/javascript")

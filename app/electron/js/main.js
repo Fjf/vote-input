@@ -2,8 +2,11 @@ import {randomString} from './randomString.js';
 
 const userId = randomString(16);
 // Open a WebSocket connection to the server (user‑specific endpoint)
-const ws = new WebSocket(`ws://${location.host}/ws/${userId}`);
-
+const host = location.host.startsWith('file') || location.host === '' ? 'localhost:7790' : location.host;
+const ws = new WebSocket(`ws://${host}/ws/${userId}`);
+ws.onopen = () => {
+    connected = true;
+};
 
 /* -------------------------------------------------------------
    State & throttling logic
@@ -11,6 +14,7 @@ const ws = new WebSocket(`ws://${location.host}/ws/${userId}`);
 let lastEmitTime = 0;            // timestamp of the last send
 let tracking = true;  // Do we listen to user?
 let mouseTracking = false;
+let connected = false;``
 const EMIT_INTERVAL_MS = 100;    // 10 times per second = 100 ms
 
 // Set of keys currently held down
@@ -22,9 +26,9 @@ const pressedKeys = new Set();
  * and the minimum interval has elapsed.
  */
 function tryEmit() {
+    if (!connected) return
     const now = Date.now();
     if (now - lastEmitTime >= EMIT_INTERVAL_MS) {
-        console.log("trying emit")
         ws.send(
             JSON.stringify({key: Array.from(pressedKeys), mouseDelta: mouseDelta})
         );

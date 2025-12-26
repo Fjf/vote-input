@@ -2,6 +2,7 @@ import asyncio
 import json
 import threading
 import time
+from collections import defaultdict
 from functools import partial
 from pathlib import Path
 import uvicorn
@@ -87,7 +88,9 @@ class ListenerManager:
 
     async def emit_sporadically(self):
         while True:
-            await self.broadcast(str(vote_tally_buttons) + str(vote_tally_mouse_movements))
+            json_data = json.dumps(vote_counter.get_current_vote_state())
+
+            await self.broadcast(json_data)
             await asyncio.sleep(self.emit_interval / 1000)
 
     async def connect(self, websocket: WebSocket):
@@ -107,13 +110,60 @@ class MouseUpdate(BaseModel):
     xDelta: float  # Between -1 and 1, 1 is monitor width
     yDelta: float  # Between -1 and 1, 1 io monitor height.
 
+
 manager = ConnectionManager()
 listener_manager = ListenerManager()
 
-# Buttons are all keyboard buttons and the 3 mouse buttons.
-vote_tally_buttons: dict[str, str] = {}
-# Movement is defined as a difference of xDelta, yDelta
-vote_tally_mouse_movements: dict[str, MouseUpdate] = {}
+
+class VoteCounter:
+    def __init__(self):
+        # Buttons are all keyboard buttons
+        self.buttons: dict[str, str] = {}
+        # Left, right, and middle mouse button
+        self.mouse_buttons: dict[str, str] = {}
+        # Movement is defined as a difference of xDelta, yDelta
+        self.mouse_movements: dict[str, MouseUpdate] = {}
+
+    def set(self, user_id, buttons, mouse_buttons, mouse_movements):
+        self.buttons[user_id] = buttons
+        self.mouse_buttons[user_id] = mouse_buttons
+        self.mouse_movements[user_id] = mouse_movements
+
+    def disconnect(self, user_id):
+        del self.buttons[user_id]
+        del self.mouse_buttons[user_id]
+        del self.mouse_movements[user_id]
+
+    def get_current_vote_state(self):
+        b_f = defaultdict(int)
+        mb_f = defaultdict(int)
+
+        b_max, b_key = 0, None
+        mb_max, mb_key = 0, None
+        mm_mean = {'x': 0, 'y': 0}
+        for user_id in self.buttons.keys():
+            b_f[self.buttons[user_id]] += 1
+            if b_f[self.buttons[user_id]] > b_max:
+                b_max = b_f[self.buttons[user_id]]
+                b_key = self.buttons[user_id]
+
+            mb_f[self.mouse_buttons[user_id]] += 1
+            if mb_f[self.mouse_buttons[user_id]] > mb_max:
+                mb_max = mb_f[self.mouse_buttons[user_id]]
+                mb_key = self.mouse_buttons[user_id]
+
+            mm = self.mouse_movements[user_id]
+            mm_mean['x'] += mm['xDelta']
+            mm_mean['y'] += mm['yDelta']
+
+        if len(self.buttons) > 0:
+            mm_mean['x'] /= len(self.buttons)
+            mm_mean['y'] /= len(self.buttons)
+        return {'button': b_key, 'mouse_button': mb_key, 'mouse_movement': mm_mean}
+
+
+# TODO: Make this room-based with user provided rooms (e.g., 5-long random strings).
+vote_counter = VoteCounter()
 
 
 # ----------------------------------------------------------------------
@@ -127,13 +177,16 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         while True:
             raw_data = await websocket.receive_text()
             data = json.loads(raw_data)
-            vote_tally_mouse_movements[client_id] = data.get('mouseDelta')
-            vote_tally_buttons[client_id] = data.get("key")
+            vote_counter.set(
+                client_id,
+                data.get('key'),
+                data.get('mouseButton'),
+                data.get('mouseDelta')
+            )
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        vote_tally_buttons.pop(client_id, None)
-        vote_tally_mouse_movements.pop(client_id, None)
+        vote_counter.disconnect(client_id)
 
 
 # ----------------------------------------------------------------------

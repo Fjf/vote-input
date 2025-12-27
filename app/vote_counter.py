@@ -30,8 +30,8 @@ class VoteCounter:
         del self.mouse_movements[user_id]
 
     def get_current_vote_state(self):
-        b_f = defaultdict(int)
-        mb_f = defaultdict(int)
+        button_counter = defaultdict(int)
+        mouse_button_counter = defaultdict(int)
 
         b_max, b_key = 0, None
         mb_max, mb_key = 0, None
@@ -42,15 +42,17 @@ class VoteCounter:
         random.shuffle(keys)
 
         for user_id in keys:
-            b_f[self.buttons[user_id]] += 1
-            if b_f[self.buttons[user_id]] > b_max:
-                b_max = b_f[self.buttons[user_id]]
-                b_key = self.buttons[user_id]
+            if self.buttons[user_id]:
+                button_counter[self.buttons[user_id]] += 1
+                if button_counter[self.buttons[user_id]] > b_max:
+                    b_max = button_counter[self.buttons[user_id]]
+                    b_key = self.buttons[user_id]
 
-            mb_f[self.mouse_buttons[user_id]] += 1
-            if mb_f[self.mouse_buttons[user_id]] > mb_max:
-                mb_max = mb_f[self.mouse_buttons[user_id]]
-                mb_key = self.mouse_buttons[user_id]
+            if self.mouse_buttons[user_id]:
+                mouse_button_counter[self.mouse_buttons[user_id]] += 1
+                if mouse_button_counter[self.mouse_buttons[user_id]] > mb_max:
+                    mb_max = mouse_button_counter[self.mouse_buttons[user_id]]
+                    mb_key = self.mouse_buttons[user_id]
 
             mm = self.mouse_movements[user_id]
             mm_mean['x'] += mm['xDelta']

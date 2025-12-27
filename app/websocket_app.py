@@ -83,7 +83,7 @@ class ListenerManager:
 
     def __init__(self):
         self.active_listeners: list[WebSocket] = []
-        self.emit_interval = 100  # ms
+        self.emit_interval = 10  # ms
 
     def init_app(self):
         print('starting background thread!')

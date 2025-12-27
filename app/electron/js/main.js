@@ -57,9 +57,11 @@ function tryEmit() {
     if (!connected) return
     const now = Date.now();
     if (now - lastEmitTime >= EMIT_INTERVAL_MS) {
+        const keys = Array.from(pressedKeys).sort().join(',');
+        const pmb = Array.from(pressedMouseButtons).sort().join(',');
         const json_input = JSON.stringify({
-            key: Array.from(pressedKeys).sort().join(','),
-            mouseButton: Array.from(pressedMouseButtons).sort().join(','),
+            key: keys !== '' ? keys : null,
+            mouseButton: pmb !== '' ? keys : null,
             mouseDelta: mouseDelta
         })
         console.log(json_input);
@@ -93,6 +95,9 @@ document.addEventListener('keydown', (e) => {
     if (!tracking) return;
     pressedKeys.add(e.code);
     updateInnerTracking();
+
+    e.preventDefault();
+    e.stopPropagation();
 });
 
 
@@ -100,6 +105,9 @@ document.addEventListener('keyup', (e) => {
     if (!tracking) return;
     pressedKeys.delete(e.code);
     updateInnerTracking();
+
+    e.preventDefault();
+    e.stopPropagation();
 });
 document.addEventListener('mousedown', (e) => {
     if (!mouseTracking) return;

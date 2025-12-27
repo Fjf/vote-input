@@ -193,17 +193,18 @@ def _send_key(scancode, flags):
 
 
 def _send_mouse(dx=0, dy=0, dwFlags=0):
-    i = INPUT()
-    i.type = INPUT_MOUSE
-    i.mi=MOUSEINPUT(
-        dx=dx,
-        dy=dy,
-        mouseData=0,
-        dwFlags=dwFlags,
-        time=0,
-        dwExtraInfo=0
+    inp = INPUT(
+        type=INPUT_MOUSE,
+        mi=MOUSEINPUT(
+            dx=dx,
+            dy=dy,
+            mouseData=0,
+            dwFlags=dwFlags,
+            time=0,
+            dwExtraInfo=None,
+        ),
     )
-    user32.SendInput(1, ctypes.byref(i), ctypes.sizeof(INPUT))
+    user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
 
 # -------------------------
 # Backend
@@ -239,19 +240,25 @@ class WindowsBackend(Backend):
         Move mouse relative to current position
         dx, dy: pixels to move
         """
-        # Clamp inputs
-        dx = max(-1.0, min(1.0, dx))
-        dy = max(-1.0, min(1.0, dy))
+        # Convert relative movement to absolute coordinates in 0..65535
+        # Get screen size
+        dx *= 1000
+        dy *= 1000
+        _send_mouse(int(dx), int(dy), MOUSEEVENTF_MOVE)
 
-        # Convert normalized [-1, 1] → [0, 65535]
-        abs_x = int(dx * 100)
-        abs_y = int(dy * 100)
 
-        _send_mouse(
-            dx=abs_x,
-            dy=abs_y,
-            dwFlags=MOUSEEVENTF_MOVE
-        )
+        # screen_x = user32.GetSystemMetrics(0)
+        # screen_y = user32.GetSystemMetrics(1)
+        #
+        # # Get current cursor position
+        # class POINT(ctypes.Structure):
+        #     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        # pt = POINT()
+        # user32.GetCursorPos(ctypes.byref(pt))
+        # new_x = int((pt.x + dx) * 65535 / (screen_x - 1))
+        # new_y = int((pt.y + dy) * 65535 / (screen_y - 1))
+        # print(new_x, new_y)
+        # _send_mouse(new_x, new_y, MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE)
 
     def press_key(self, key):
         for key in key.split(','):

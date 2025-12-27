@@ -39,7 +39,7 @@ connectButton.addEventListener('click', () => {
    ------------------------------------------------------------- */
 let lastEmitTime = 0;            // timestamp of the last send
 let tracking = true;  // Do we listen to user?
-let mouseTracking = false;
+let mouseTracking = true;
 let connected = false;
 ``
 const EMIT_INTERVAL_MS = 100;    // 10 times per second = 100 ms
@@ -61,7 +61,7 @@ function tryEmit() {
         const pmb = Array.from(pressedMouseButtons).sort().join(',');
         const json_input = JSON.stringify({
             key: keys !== '' ? keys : null,
-            mouseButton: pmb !== '' ? keys : null,
+            mouseButton: pmb !== '' ? pmb : null,
             mouseDelta: mouseDelta
         })
         console.log(json_input);
@@ -96,8 +96,8 @@ document.addEventListener('keydown', (e) => {
     pressedKeys.add(e.code);
     updateInnerTracking();
 
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
 });
 
 
@@ -106,8 +106,8 @@ document.addEventListener('keyup', (e) => {
     pressedKeys.delete(e.code);
     updateInnerTracking();
 
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
 });
 document.addEventListener('mousedown', (e) => {
     if (!mouseTracking) return;
@@ -122,7 +122,6 @@ document.addEventListener('mousedown', (e) => {
     e.stopPropagation();
 });
 document.addEventListener('mouseup', (e) => {
-    if (!mouseTracking) return;
     if (!(e.buttons & 1)) pressedMouseButtons.delete('LeftMouseButton')
     if (!(e.buttons & 2)) pressedMouseButtons.delete('RightMouseButton')
     if (!(e.buttons & 4)) pressedMouseButtons.delete('MiddleMouseButton')
@@ -133,12 +132,10 @@ document.addEventListener('mouseup', (e) => {
     e.stopPropagation();
 });
 document.addEventListener('contextmenu', (e) => {
-    if (!mouseTracking) return;
     e.preventDefault()
 });
 
 document.addEventListener('mousemove', (e) => {
-    if (!mouseTracking) return;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
@@ -148,7 +145,6 @@ document.addEventListener('mousemove', (e) => {
 
 const mouseTrackButton = document.getElementById('tracking-mouse-button');
 mouseTrackButton.addEventListener('click', () => {
-    mouseTracking = !mouseTracking;
     mouseTrackButton.requestPointerLock();
 })
 

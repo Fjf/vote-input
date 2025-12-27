@@ -26,28 +26,50 @@ def load_backend():
 
 
 async def listen_for_input(backend, ws_url):
+    pressed_buttons = []
+    pressed_mouse_buttons = []
+
     async with websockets.connect(ws_url) as websocket:
         print(f"Connected to {ws_url}")
 
         while True:
             msg = await websocket.recv()
 
+            if not backend.is_foreground():
+                # Release all buttons if we are tabbed out.
+                for button in pressed_buttons:
+                    backend.release_key(button)
+                for button in pressed_mouse_buttons:
+                    backend.release_mouse_button(button)
+
             try:
                 data = json.loads(msg)
-                print("received:", data)
             except json.JSONDecodeError:
                 continue
 
-            if data.get("button"):
-                backend.guarded_press_key(data["button"])
+            buttons = data.get("button")
+            mouse_buttons = data.get('mouse_button')
+            mouse_movement = data.get('mouse_movement')
+            # Check for all buttons we have to release
+            for button in pressed_buttons:
+                if button not in buttons.split(','):
+                    backend.release_key(button)
+            for button in pressed_mouse_buttons:
+                if button not in mouse_buttons.split(','):
+                    backend.release_mouse_button(button)
 
-            if data.get("mouse_button"):
-                backend.press_mouse_button(data["mouse_button"])
+            if buttons:
+                backend.guarded_press_key(buttons)
+                pressed_buttons = buttons.split(',')
 
-            if data.get("mouse_movement"):
-                dx = data["mouse_movement"].get("x", 0)
-                dy = data["mouse_movement"].get("y", 0)
-                backend.move_mouse(dx, dy)
+            if mouse_buttons:
+                backend.guarded_press_mouse_button(mouse_buttons)
+                pressed_mouse_buttons = mouse_buttons.split(',')
+
+            if mouse_movement:
+                dx = mouse_movement.get("x", 0)
+                dy = mouse_movement.get("y", 0)
+                backend.guarded_move_mouse(dx, dy)
 
 
 def start_listener(backend, ws_url):
@@ -78,8 +100,8 @@ def main():
     print(f"Focusing: {title}")
     backend.focus_window(window_id)
 
-    print("Starting input in 2 seconds...")
-    time.sleep(2)
+    print("Starting input in 0.5 seconds...")
+    time.sleep(0.5)
 
     host = "localhost"
     port = 7790

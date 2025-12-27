@@ -1,25 +1,28 @@
 import asyncio
 import json
 import threading
-import time
-from collections import defaultdict
-from functools import partial
 from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+
+from app.vote_counter import vote_counter
 
 app = FastAPI()
+def init_app():
 
-# Mount the static directory for generic assets (CSS, images, etc.)
-app.mount(
-    "/static",
-    StaticFiles(directory=Path(__file__).parent / "static"),
-    name="static",
-)
+    # Mount the static directory for generic assets (CSS, images, etc.)
+    app.mount(
+        "/static",
+        StaticFiles(directory=Path(__file__).parent / "static"),
+        name="static",
+    )
 
+    listener_manager.init_app()
+
+    return app
 
 # ----------------------------------------------------------------------
 # Serve the main HTML page at the root URL
@@ -81,6 +84,9 @@ class ListenerManager:
     def __init__(self):
         self.active_listeners: list[WebSocket] = []
         self.emit_interval = 100  # ms
+
+    def init_app(self):
+        print('starting background thread!')
         threading.Thread(target=self._run_emitter_loop, daemon=True).start()
 
     def _run_emitter_loop(self):
@@ -106,64 +112,9 @@ class ListenerManager:
             await listener.send_text(message)
 
 
-class MouseUpdate(BaseModel):
-    xDelta: float  # Between -1 and 1, 1 is monitor width
-    yDelta: float  # Between -1 and 1, 1 io monitor height.
-
 
 manager = ConnectionManager()
 listener_manager = ListenerManager()
-
-
-class VoteCounter:
-    def __init__(self):
-        # Buttons are all keyboard buttons
-        self.buttons: dict[str, str] = {}
-        # Left, right, and middle mouse button
-        self.mouse_buttons: dict[str, str] = {}
-        # Movement is defined as a difference of xDelta, yDelta
-        self.mouse_movements: dict[str, MouseUpdate] = {}
-
-    def set(self, user_id, buttons, mouse_buttons, mouse_movements):
-        self.buttons[user_id] = buttons
-        self.mouse_buttons[user_id] = mouse_buttons
-        self.mouse_movements[user_id] = mouse_movements
-
-    def disconnect(self, user_id):
-        del self.buttons[user_id]
-        del self.mouse_buttons[user_id]
-        del self.mouse_movements[user_id]
-
-    def get_current_vote_state(self):
-        b_f = defaultdict(int)
-        mb_f = defaultdict(int)
-
-        b_max, b_key = 0, None
-        mb_max, mb_key = 0, None
-        mm_mean = {'x': 0, 'y': 0}
-        for user_id in self.buttons.keys():
-            b_f[self.buttons[user_id]] += 1
-            if b_f[self.buttons[user_id]] > b_max:
-                b_max = b_f[self.buttons[user_id]]
-                b_key = self.buttons[user_id]
-
-            mb_f[self.mouse_buttons[user_id]] += 1
-            if mb_f[self.mouse_buttons[user_id]] > mb_max:
-                mb_max = mb_f[self.mouse_buttons[user_id]]
-                mb_key = self.mouse_buttons[user_id]
-
-            mm = self.mouse_movements[user_id]
-            mm_mean['x'] += mm['xDelta']
-            mm_mean['y'] += mm['yDelta']
-
-        if len(self.buttons) > 0:
-            mm_mean['x'] /= len(self.buttons)
-            mm_mean['y'] /= len(self.buttons)
-        return {'button': b_key, 'mouse_button': mb_key, 'mouse_movement': mm_mean}
-
-
-# TODO: Make this room-based with user provided rooms (e.g., 5-long random strings).
-vote_counter = VoteCounter()
 
 
 # ----------------------------------------------------------------------
@@ -177,6 +128,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         while True:
             raw_data = await websocket.receive_text()
             data = json.loads(raw_data)
+            print("received data from", client_id, ":", data)
             vote_counter.set(
                 client_id,
                 data.get('key'),
@@ -205,4 +157,4 @@ async def listening_endpoint(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=7790, reload=True)
+    uvicorn.run("app.websocket_app:init_app", host="0.0.0.0", port=7790, reload=True)

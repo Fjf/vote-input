@@ -1,12 +1,38 @@
 import {randomString} from './randomString.js';
 
 const userId = randomString(16);
-// Open a WebSocket connection to the server (user‑specific endpoint)
-const host = location.host.startsWith('file') || location.host === '' ? 'localhost:7790' : location.host;
-const ws = new WebSocket(`ws://${host}/ws/${userId}`);
-ws.onopen = () => {
-    connected = true;
-};
+let ws = null;
+
+function connect(ipAddress) {
+    const host = ipAddress.includes(':')
+        ? ipAddress
+        : `${ipAddress}:7790`;
+
+    ws = new WebSocket(`ws://${host}/ws/${userId}`);
+
+    ws.onopen = () => {
+        connected = true;
+        document.getElementById('output').innerText = 'Connected';
+    };
+
+    ws.onclose = () => {
+        connected = false;
+        document.getElementById('output').innerText = 'Disconnected';
+    };
+
+    ws.onerror = () => {
+        connected = false;
+        document.getElementById('output').innerText = 'Connection error';
+    };
+}
+
+const connectButton = document.getElementById('connect-button');
+const serverIpInput = document.getElementById('server-ip');
+
+connectButton.addEventListener('click', () => {
+    const ip = serverIpInput.value.trim() || '127.0.0.1';
+    connect(ip);
+});
 
 /* -------------------------------------------------------------
    State & throttling logic
@@ -14,7 +40,8 @@ ws.onopen = () => {
 let lastEmitTime = 0;            // timestamp of the last send
 let tracking = true;  // Do we listen to user?
 let mouseTracking = false;
-let connected = false;``
+let connected = false;
+``
 const EMIT_INTERVAL_MS = 100;    // 10 times per second = 100 ms
 
 // Set of keys currently held down
@@ -30,12 +57,13 @@ function tryEmit() {
     if (!connected) return
     const now = Date.now();
     if (now - lastEmitTime >= EMIT_INTERVAL_MS) {
-        ws.send(
-            JSON.stringify({
-                key: Array.from(pressedKeys).sort().join(','),
-                mouseButton: Array.from(pressedMouseButtons).sort().join(','),
-                mouseDelta: mouseDelta
-            })
+        const json_input = JSON.stringify({
+            key: Array.from(pressedKeys).sort().join(','),
+            mouseButton: Array.from(pressedMouseButtons).sort().join(','),
+            mouseDelta: mouseDelta
+        })
+        console.log(json_input);
+        ws.send(json_input
         );
         mouseDelta.xDelta = 0;
         mouseDelta.yDelta = 0;
@@ -74,7 +102,7 @@ document.addEventListener('keyup', (e) => {
     updateInnerTracking();
 });
 document.addEventListener('mousedown', (e) => {
-    if (!tracking) return;
+    if (!mouseTracking) return;
     if (e.buttons & 1) pressedMouseButtons.add('LeftMouseButton')
     if (e.buttons & 2) pressedMouseButtons.add('RightMouseButton')
     if (e.buttons & 4) pressedMouseButtons.add('MiddleMouseButton')
@@ -86,7 +114,7 @@ document.addEventListener('mousedown', (e) => {
     e.stopPropagation();
 });
 document.addEventListener('mouseup', (e) => {
-    if (!tracking) return;
+    if (!mouseTracking) return;
     if (!(e.buttons & 1)) pressedMouseButtons.delete('LeftMouseButton')
     if (!(e.buttons & 2)) pressedMouseButtons.delete('RightMouseButton')
     if (!(e.buttons & 4)) pressedMouseButtons.delete('MiddleMouseButton')
@@ -97,9 +125,18 @@ document.addEventListener('mouseup', (e) => {
     e.stopPropagation();
 });
 document.addEventListener('contextmenu', (e) => {
+    if (!mouseTracking) return;
     e.preventDefault()
 });
 
+document.addEventListener('mousemove', (e) => {
+    if (!mouseTracking) return;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    mouseDelta.xDelta += e.movementX / viewportWidth;
+    mouseDelta.yDelta += e.movementY / viewportHeight;
+})
 
 const mouseTrackButton = document.getElementById('tracking-mouse-button');
 mouseTrackButton.addEventListener('click', () => {
@@ -112,24 +149,4 @@ let mouseDelta = {
     'yDelta': 0,
 };
 
-document.addEventListener('mousemove', (e) => {
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
 
-    mouseDelta.xDelta += e.movementX / viewportWidth;
-    mouseDelta.yDelta += e.movementY / viewportHeight;
-})
-
-function onReturnToPage() {
-    mouseTracking = false;
-}
-
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        onReturnToPage();
-    }
-});
-
-window.addEventListener('focus', () => {
-    onReturnToPage();
-});

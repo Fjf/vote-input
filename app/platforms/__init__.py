@@ -21,7 +21,7 @@ class Backend(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def press_key(self, key, duration=0.05):
+    def press_key(self, key):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -29,24 +29,32 @@ class Backend(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def press_mouse_button(self, button, duration=0.05):
+    def press_mouse_button(self, button):
         raise NotImplementedError
 
     @abc.abstractmethod
     def get_foreground_window(self):
         raise NotImplementedError
 
-    def guarded_press_key(self, key, duration=0.05):
+    @abc.abstractmethod
+    def release_key(self, key):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def release_mouse_button(self, button):
+        raise NotImplementedError
+
+    def guarded_press_key(self, key):
         if not self.is_foreground():
             return
-        self.press_key(key, duration)
+        self.press_key(key)
 
     def guarded_move_mouse(self, x, y):
         if not self.is_foreground():
             return
         self.move_mouse(x, y)
 
-    def guarded_press_mouse_button(self, button, duration=0.05):
+    def guarded_press_mouse_button(self, button):
         if not self.is_foreground():
             return
-        self.press_mouse_button(button, duration)
+        self.press_mouse_button(button)

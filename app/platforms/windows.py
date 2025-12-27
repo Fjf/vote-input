@@ -22,6 +22,7 @@ MOUSEEVENTF_RIGHTDOWN = 0x0008
 MOUSEEVENTF_RIGHTUP = 0x0010
 MOUSEEVENTF_MIDDLEDOWN = 0x0020
 MOUSEEVENTF_MIDDLEUP = 0x0040
+MOUSEEVENTF_MOVE_NOCOALESCE = 0x2000
 SW_RESTORE = 9
 
 # Windows Virtual-Key (VK) mapping for US QWERTY
@@ -189,34 +190,20 @@ def _send_key(scancode, flags):
     i.ki = KEYBDINPUT(0, scancode, KEYEVENTF_SCANCODE, 0, 0)
     i.ki.dwFlags |= flags
     user32.SendInput(1, ctypes.byref(i), ctypes.sizeof(INPUT))
-    # i.ki.dwFlags |= KEYEVENTF_KEYUP
-    # user32.SendInput(1, ctypes.byref(i), ctypes.sizeof(INPUT))
-    #
-    # inp = INPUT(
-    #     type=INPUT_KEYBOARD,
-    #     ki=KEYBDINPUT(
-    #         wVk=vk,
-    #         wScan=0,
-    #         dwFlags=flags,
-    #         time=0,
-    #         dwExtraInfo=0,
-    #     ),
-    # )
-    # user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
+
 
 def _send_mouse(dx=0, dy=0, dwFlags=0):
-    inp = INPUT(
-        type=INPUT_MOUSE,
-        mi=MOUSEINPUT(
-            dx=dx,
-            dy=dy,
-            mouseData=0,
-            dwFlags=dwFlags,
-            time=0,
-            dwExtraInfo=None,
-        ),
+    i = INPUT()
+    i.type = INPUT_MOUSE
+    i.mi=MOUSEINPUT(
+        dx=dx,
+        dy=dy,
+        mouseData=0,
+        dwFlags=dwFlags,
+        time=0,
+        dwExtraInfo=0
     )
-    user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(inp))
+    user32.SendInput(1, ctypes.byref(i), ctypes.sizeof(INPUT))
 
 # -------------------------
 # Backend
@@ -257,13 +244,13 @@ class WindowsBackend(Backend):
         dy = max(-1.0, min(1.0, dy))
 
         # Convert normalized [-1, 1] → [0, 65535]
-        abs_x = int((dx + 1.0) * 0.5 * 65535)
-        abs_y = int((dy + 1.0) * 0.5 * 65535)
+        abs_x = int(dx * 100)
+        abs_y = int(dy * 100)
 
         _send_mouse(
             dx=abs_x,
             dy=abs_y,
-            dwFlags=MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE
+            dwFlags=MOUSEEVENTF_MOVE
         )
 
     def press_key(self, key):

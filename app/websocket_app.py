@@ -128,7 +128,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         while True:
             raw_data = await websocket.receive_text()
             data = json.loads(raw_data)
-            print("received data from", client_id, ":", data)
             vote_counter.set(
                 client_id,
                 data.get('key'),

@@ -52,10 +52,10 @@ async def listen_for_input(backend, ws_url):
             mouse_movement = data.get('mouse_movement')
             # Check for all buttons we have to release
             for button in pressed_buttons:
-                if button not in buttons.split(','):
+                if not buttons or button not in buttons.split(','):
                     backend.release_key(button)
             for button in pressed_mouse_buttons:
-                if button not in mouse_buttons.split(','):
+                if not mouse_buttons or button not in mouse_buttons.split(','):
                     backend.release_mouse_button(button)
 
             if buttons:
@@ -69,7 +69,7 @@ async def listen_for_input(backend, ws_url):
             if mouse_movement:
                 dx = mouse_movement.get("x", 0)
                 dy = mouse_movement.get("y", 0)
-                backend.guarded_move_mouse(dx, dy)
+                backend.move_mouse(dx, dy)
 
 
 def start_listener(backend, ws_url):

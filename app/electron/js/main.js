@@ -1,13 +1,10 @@
 import {randomString} from './randomString.js';
+import * as listen from "./listen.js";
 
 const userId = randomString(16);
 let ws = null;
 
-function connect(ipAddress) {
-    const host = ipAddress.includes(':')
-        ? ipAddress
-        : `${ipAddress}:7790`;
-
+function connect(host) {
     ws = new WebSocket(`ws://${host}/ws/${userId}`);
 
     ws.onopen = () => {
@@ -31,18 +28,22 @@ const serverIpInput = document.getElementById('server-ip');
 
 connectButton.addEventListener('click', () => {
     const ip = serverIpInput.value.trim() || '127.0.0.1';
-    connect(ip);
+    const host = ip.includes(':') ? ip : `${ip}:7790`;
+
+    connect(host);
+    listen.connect(`ws://${host}/listen`);
+    tracking = true;
 });
 
 /* -------------------------------------------------------------
    State & throttling logic
    ------------------------------------------------------------- */
-let lastEmitTime = 0;            // timestamp of the last send
-let tracking = true;  // Do we listen to user?
-let mouseTracking = true;
+let tracking = false;
 let connected = false;
-``
-const EMIT_INTERVAL_MS = 100;    // 10 times per second = 100 ms
+
+let lastEmitTime = 0;
+const EMITS_PER_SECOND = 30;
+const EMIT_INTERVAL_MS = 1000 / EMITS_PER_SECOND;
 
 // Set of keys currently held down
 const pressedKeys = new Set();
@@ -64,21 +65,12 @@ function tryEmit() {
             mouseButton: pmb !== '' ? pmb : null,
             mouseDelta: mouseDelta
         })
-        console.log(json_input);
-        ws.send(json_input
-        );
+        ws.send(json_input);
         mouseDelta.xDelta = 0;
         mouseDelta.yDelta = 0;
         lastEmitTime = now;
     }
 }
-
-const trackButton = document.getElementById('tracking-button');
-trackButton.addEventListener('click', () => {
-    tracking = !tracking;
-    trackButton.innerHTML = 'Switch to ' + (tracking ? 'not' : '') + ' Tracking';
-})
-
 
 // Run the throttling check regularly (e.g., every 50ms)
 setInterval(tryEmit, 50);
@@ -96,8 +88,8 @@ document.addEventListener('keydown', (e) => {
     pressedKeys.add(e.code);
     updateInnerTracking();
 
-    // e.preventDefault();
-    // e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
 });
 
 
@@ -106,11 +98,12 @@ document.addEventListener('keyup', (e) => {
     pressedKeys.delete(e.code);
     updateInnerTracking();
 
-    // e.preventDefault();
-    // e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
 });
+
 document.addEventListener('mousedown', (e) => {
-    if (!mouseTracking) return;
+    if (!tracking) return;
     if (e.buttons & 1) pressedMouseButtons.add('LeftMouseButton')
     if (e.buttons & 2) pressedMouseButtons.add('RightMouseButton')
     if (e.buttons & 4) pressedMouseButtons.add('MiddleMouseButton')
@@ -141,6 +134,9 @@ document.addEventListener('mousemove', (e) => {
 
     mouseDelta.xDelta += e.movementX / viewportWidth;
     mouseDelta.yDelta += e.movementY / viewportHeight;
+
+    e.preventDefault();
+    e.stopPropagation();
 })
 
 const mouseTrackButton = document.getElementById('tracking-mouse-button');

@@ -48,16 +48,35 @@
         <div id="current-tracking">NONE</div>
     </div>
 
-    <button id="tracking-button">Switch to not Tracking</button>
     <button id="tracking-mouse-button">
         Start Tracking Mouse (ESC to release)
     </button>
 
-    <h3>System Means:</h3>
     <div id="output">Connecting...</div>
     <button id="close-button">Close Window</button>
 </div>
+<a href="/download">
+    <button>Download Windows Installer</button>
+</a>
 <script>
+    // Load saved server IP on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const ipInput = document.getElementById('server-ip');
+        const savedIp = localStorage.getItem('serverIp');
+        if (savedIp) {
+            ipInput.value = savedIp;
+        }
+    });
+
+    // Save server IP when the Connect button is clicked
+    document.getElementById('connect-button').addEventListener('click', () => {
+        const ip = document.getElementById('server-ip').value.trim();
+        if (ip) {
+            localStorage.setItem('serverIp', ip);
+        }
+        // Existing connect logic (if any) can follow here
+    });
+
     document.getElementById('close-button').addEventListener('click', () => {
         window.close();
     });

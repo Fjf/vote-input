@@ -1,19 +1,43 @@
-const host = location.host.startsWith('file') || location.host === '' ? 'localhost:7790' : location.host;
-const ws = new WebSocket(`ws://${host}/listen`);
+function renderObject(obj) {
+    const ul = document.createElement("ul");
 
-ws.onopen = () => {
-    document.getElementById('output').textContent = 'Connected – waiting for updates...';
-};
+    for (const [key, value] of Object.entries(obj)) {
+        const li = document.createElement("li");
 
-ws.onmessage = (event) => {
-    const data = event.data;
-    document.getElementById('output').textContent = `Current voting state:\n${data}`;
-};
+        if (typeof value === "object" && value !== null) {
+            li.innerHTML = `<strong>${key}</strong>:`;
+            li.appendChild(renderObject(value));
+        } else {
+            li.innerHTML = `<strong>${key}</strong>: ${value}`;
+        }
 
-ws.onclose = () => {
-    document.getElementById('output').textContent = 'Connection closed.';
-};
+        ul.appendChild(li);
+    }
 
-ws.onerror = (err) => {
-    console.error('WebSocket error:', err);
-};
+    return ul;
+}
+
+
+export function connect(url) {
+    const ws = new WebSocket(url);
+    ws.onopen = () => {
+        document.getElementById('output').textContent = 'Connected – waiting for updates...';
+    };
+
+    ws.onmessage = (event) => {
+        const data = event.data;
+        const output = document.getElementById("output");
+
+        output.innerHTML = "<h3>Current voting state</h3>";
+        output.appendChild(renderObject(JSON.parse(data)));
+    };
+
+    ws.onclose = () => {
+        document.getElementById('output').textContent = 'Connection closed.';
+    };
+
+    ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+    };
+}
+

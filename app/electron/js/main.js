@@ -3,6 +3,7 @@ import * as listen from "./listen.js";
 
 const userId = randomString(16);
 let ws = null;
+let escapeButton = localStorage.getItem('escapeButton')
 
 function connect(host) {
     ws = new WebSocket(`ws://${host}/ws/${userId}`);
@@ -85,7 +86,13 @@ function updateInnerTracking() {
    ------------------------------------------------------------- */
 document.addEventListener('keydown', (e) => {
     if (!tracking) return;
-    pressedKeys.add(e.code);
+
+    if (e.code === escapeButton) {
+        pressedKeys.add('Escape')
+    } else {
+        pressedKeys.add(e.code);
+    }
+
     updateInnerTracking();
 
     e.preventDefault();
@@ -95,7 +102,12 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keyup', (e) => {
     if (!tracking) return;
-    pressedKeys.delete(e.code);
+
+    if (e.code === escapeButton) {
+        pressedKeys.delete('Escape')
+    } else {
+        pressedKeys.delete(e.code);
+    }
     updateInnerTracking();
 
     e.preventDefault();
@@ -148,5 +160,19 @@ let mouseDelta = {
     'xDelta': 0,
     'yDelta': 0,
 };
+
+const escapeRebindingButton = document.getElementById('escape-rebinding-button');
+escapeRebindingButton.addEventListener('click', () => {
+    escapeRebindingButton.innerText = `Waiting for next input...`
+
+    function fn(e) {
+        escapeRebindingButton.innerText = `Current Esc = ${e.code}`
+        localStorage.setItem('escapeButton', e.code);
+        escapeButton = e.code;
+        document.removeEventListener('keydown', fn);
+    }
+
+    document.addEventListener('keydown', fn)
+})
 
 

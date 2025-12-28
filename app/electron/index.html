@@ -53,6 +53,10 @@
         <button id="connect-button">Connect</button>
     </div>
 
+    <button id="escape-rebinding-button">
+        Current Escape Button:
+    </button>
+
     <h1>Listening to your input...</h1>
 
     <div style="display:flex;gap:8px">
@@ -74,9 +78,15 @@
     // Load saved server IP on page load
     document.addEventListener('DOMContentLoaded', () => {
         const ipInput = document.getElementById('server-ip');
+        const escapeRebindingButton = document.getElementById('escape-rebinding-button');
         const savedIp = localStorage.getItem('serverIp');
         if (savedIp) {
             ipInput.value = savedIp;
+        }
+
+        const escapeButton = localStorage.getItem('escapeButton');
+        if (escapeButton) {
+            escapeRebindingButton.innerText = `Current Esc = ${escapeButton}`
         }
     });
 
@@ -86,7 +96,6 @@
         if (ip) {
             localStorage.setItem('serverIp', ip);
         }
-        // Existing connect logic (if any) can follow here
     });
 
     document.getElementById('close-button').addEventListener('click', () => {

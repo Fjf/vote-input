@@ -7,7 +7,7 @@ export function startStream(ip) {
       `rtmp://${ip}:1935/live`,
       '-fflags', 'nobuffer',
       '-flags', 'low_delay',
-      '-fs'  // fullscreen
+      // '-fs'  // fullscreen
       // '-framedrop',
       // '-probesize', '32',
       // '-analyzeduration', '0'

@@ -69,11 +69,19 @@ async def listen_for_input(backend, ws_url):
             if buttons:
                 buttons = validator.filter_key_csv(buttons)
 
-                backend.guarded_press_key(buttons)
+                for button in buttons.split(','):
+                    if button in pressed_buttons:
+                        continue
+                    backend.guarded_press_key(button)
                 pressed_buttons = buttons.split(',')
 
             if mouse_buttons:
-                backend.guarded_press_mouse_button(mouse_buttons)
+
+                for button in mouse_buttons.split(','):
+                    if button in pressed_mouse_buttons:
+                        continue
+                    backend.guarded_press_mouse_button(button)
+
                 pressed_mouse_buttons = mouse_buttons.split(',')
 
             if mouse_movement:

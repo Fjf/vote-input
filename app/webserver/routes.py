@@ -8,7 +8,7 @@ from app.webserver.main import app
 
 @app.get("/", response_class=FileResponse)
 async def get_root():
-    """Return the static HTML page."""
+    """Return the resources HTML page."""
     html_path = Path(__file__).parent.parent / "electron" / "index.html"
     return FileResponse(html_path)
 
@@ -27,9 +27,9 @@ async def download_input_overlay():
 @app.get("/js/{file_path:path}", response_class=FileResponse)
 async def get_js(file_path: str):
     """
-    Return a JavaScript file from the ``static/js`` directory.
+    Return a JavaScript file from the ``resources/js`` directory.
 
-    Example: ``GET /js/app.js`` → ``static/js/app.js``.
+    Example: ``GET /js/app.js`` → ``resources/js/app.js``.
     """
     js_path = Path(__file__).parent.parent / "electron" / "js" / file_path
     if not js_path.is_file():

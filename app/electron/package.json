@@ -14,7 +14,16 @@
         "nsis"
       ],
       "icon": "icon.ico"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "./resources/",
+        "to": "resources/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "devDependencies": {
     "electron": "^30.0.0",

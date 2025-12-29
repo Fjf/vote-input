@@ -1,5 +1,6 @@
 import {randomString} from './randomString.js';
 import * as listen from "./listen.js";
+import {startStream} from "./ffplay.js";
 
 const userId = randomString(16);
 let ws = null;
@@ -33,6 +34,7 @@ connectButton.addEventListener('click', () => {
 
     connect(host);
     listen.connect(`ws://${host}/listen`);
+    startStream(ip);
     tracking = true;
 });
 

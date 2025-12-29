@@ -12,10 +12,10 @@ function createWindow() {
         resizable: false,
         hasShadow: false,
         webPreferences: {
-            contextIsolation: true, nodeIntegration: false, pointerLock: true
+            contextIsolation: false, nodeIntegration: true, pointerLock: true
         }
     });
-
+    win.webContents.openDevTools();
     win.loadFile('index.html');
 }
 

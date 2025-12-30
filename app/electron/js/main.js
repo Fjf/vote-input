@@ -1,7 +1,6 @@
 import {randomString} from './randomString.js';
 import * as listen from "./listen.js";
-import {startStream} from "./ffplay.js";
-
+const { ipcRenderer } = require('electron');
 const userId = randomString(16);
 let ws = null;
 let escapeButton = localStorage.getItem('escapeButton')
@@ -34,7 +33,8 @@ connectButton.addEventListener('click', () => {
 
     connect(host);
     listen.connect(`ws://${host}/listen`);
-    startStream(ip);
+    console.log("starting stream")
+    ipcRenderer.send('start-stream', ip); // ask main to start ffmpeg
     tracking = true;
 });
 
